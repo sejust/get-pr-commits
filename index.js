@@ -1,3 +1,4 @@
+const fs = require('fs')
 const core = require('@actions/core')
 const github = require('@actions/github')
 
@@ -12,18 +13,33 @@ async function main() {
       return
     }
 
+    const outfile = core.getInput('output-file')
     const token = core.getInput('token')
     const filterOutPattern = core.getInput('filter_out_pattern')
     const filterOutFlags = core.getInput('filter_out_flags')
     const octokit = new github.GitHub(token)
 
-    const commitsListed = await octokit.pulls.listCommits({
-      owner: repo.owner.login,
-      repo: repo.name,
-      pull_number: pr.number,
-    })
+    let page = 1
+    let commits = []
+    while (true) {
+      const response = await octokit.pulls.listCommits({
+        owner: repo.owner.login,
+        repo: repo.name,
+        pull_number: pr.number,
+        per_page: 100,
+        page: page
+      })
 
-    let commits = commitsListed.data
+      console.log(`Got ${response.data.length} commits at page ${page}`)
+      commits = commits.concat(response.data)
+
+      // has next?
+      const linkHeader = response.headers.link
+      if (!linkHeader || !linkHeader.includes('rel="next"')) {
+        break
+      }
+      page++
+    }
 
     if (filterOutPattern) {
       const regex = new RegExp(filterOutPattern, filterOutFlags)
@@ -32,7 +48,14 @@ async function main() {
       })
     }
 
-    core.setOutput('commits', JSON.stringify(commits))
+    const jsondata = JSON.stringify(commits)
+
+    core.setOutput('commits', jsondata)
+
+    if (outfile) {
+      fs.writeFileSync(outfile, jsondata)
+      console.log(`save json data to file:${outfile}.`)
+    }
   } catch (error) {
     core.setFailed(error.message)
   }
