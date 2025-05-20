@@ -19,5 +19,6 @@ jobs:
       uses: tim-actions/get-pr-commits@master
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        output-file: "/tmp/commits.json"
 
 ```

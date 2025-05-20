@@ -12,6 +12,10 @@ inputs:
     description: 'Regex flags of input filter_out_pattern'
     required: false
     default: ''
+  output-file:
+    description: 'output json commits to file'
+    required: false
+    default: ''
 outputs:
   commits:
     description: 'commits in pr'
